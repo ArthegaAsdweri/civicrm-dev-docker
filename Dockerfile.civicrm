@@ -1,0 +1,6 @@
+FROM civicrm/civicrm
+
+RUN if ! php -m | grep -qi xdebug; then \
+      pecl install xdebug; \
+    fi \
+ && docker-php-ext-enable xdebug

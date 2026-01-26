@@ -1,0 +1,35 @@
+FROM civicrm/civicrm
+
+WORKDIR /var/www/html
+
+# cv + civix installieren
+RUN curl -LsS https://download.civicrm.org/cv/cv.phar -o /usr/local/bin/cv \
+ && chmod +x /usr/local/bin/cv \
+ && curl -LsS https://download.civicrm.org/civix/civix.phar -o /usr/local/bin/civix \
+ && chmod +x /usr/local/bin/civix
+
+# Systemtools + MySQL-Client + PHP-Erweiterungen (pdo_mysql) + Composer
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      git \
+      unzip \
+      pkg-config \
+      build-essential \
+      default-mysql-client \
+ && rm -rf /var/lib/apt/lists/* \
+ \
+ # Composer installieren
+ && php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
+ && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+ && rm composer-setup.php \
+ \
+ # PHP-Erweiterungen: PDO + MySQL
+ && docker-php-ext-install pdo pdo_mysql \
+ \
+ # Code-Coverage-Treiber pcov via pecl
+ && pecl install pcov \
+ && mkdir -p /usr/local/etc/php/conf.d \
+ && echo "extension=pcov.so" > /usr/local/etc/php/conf.d/pcov.ini \
+ && echo "pcov.enabled=1" >> /usr/local/etc/php/conf.d/pcov.ini \
+ && echo "pcov.enabled=1" >> /usr/local/etc/php/conf.d/pcov.ini \
+ && echo "pcov.directory=/var/www/html" >> /usr/local/etc/php/conf.d/pcov.ini

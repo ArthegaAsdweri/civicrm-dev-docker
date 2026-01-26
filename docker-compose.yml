@@ -1,0 +1,218 @@
+services:
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: acme-companion
+    restart: unless-stopped
+    volumes:
+      - ./nginx-proxy/html:/usr/share/nginx/html/
+      - ./nginx-proxy/vhost:/etc/nginx/vhost.d/
+      - ./nginx-proxy/certs:/etc/nginx/certs/:rw
+      - ./nginx-proxy/acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      NGINX_PROXY_CONTAINER: nginx-proxy
+    networks:
+      - frontend
+
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-proxy/certs:/etc/nginx/certs/:ro
+      - ./nginx-proxy/vhost:/etc/nginx/vhost.d/
+      - ./nginx-proxy/html:/usr/share/nginx/html/
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+    networks:
+      - frontend
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php:ro
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      VIRTUAL_HOST: pma
+      PMA_ARBITRARY: 0
+      PMA_HOSTS: ${PMA_HOSTS:-civicrm-db,test-db}
+      PMA_USER: ${PMA_USER:-root}
+      PMA_PASSWORD: ${PMA_PASSWORD:-rootPass}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - civicrm-db
+    networks:
+      - backend
+      - frontend
+
+  civicrm:
+    image: civicrm/civicrm
+    build:
+      context: .
+      dockerfile: Dockerfile.civicrm
+    container_name: civicrm-app
+    restart: unless-stopped
+    volumes:
+      - ./../civicrm-core:/var/www/html/core:ro
+      - civicrm-private:/var/www/html/private
+      - civicrm-cache-web:/var/www/html/private/cache
+      - civicrm-public:/var/www/html/public
+      #- ./civicrm.settings.php:/var/www/html/private/civicrm.settings.php
+      - ./logtail.sh:/usr/local/bin/logtail.sh:ro
+      - ./../systopiaExtensions:/var/www/html/ext:ro
+      - ./../civicrm-packages:/var/www/html/core/packages:ro
+      - ./conf/php/99-xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      VIRTUAL_HOST: civicrm
+      CIVICRM_DB_HOST: ${CIVI_DB_HOST:-civicrm-db}
+      CIVICRM_DB_NAME: ${CIVI_DB_NAME:-civicrm}
+      CIVICRM_DB_PORT: ${CIVI_DB_PORT:-3306}
+      CIVICRM_DB_USER: ${CIVI_DB_USER:-civicrm}
+      CIVICRM_DB_PASSWORD: ${CIVI_DB_PASS:-civicrmPass}
+    ports:
+      - "8760:80"
+      - "5173:5173"
+    depends_on:
+      - civicrm-db
+    networks:
+      - backend
+      - frontend
+    command: >
+      sh -lc '/usr/local/bin/logtail.sh & exec apache2-foreground'
+    # Redirects Logs to the containers stout
+
+  civicrm-db:
+    image: mariadb
+    container_name: civicrm-db
+    restart: unless-stopped
+    volumes:
+      - dbdata:/var/lib/mysql
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      MARIADB_USER: ${CIVI_DB_USER:-civicrm}
+      MARIADB_DATABASE: ${CIVI_DB_NAME:-civicrm}
+      MARIADB_PASSWORD: ${CIVI_DB_PASS:-civicrmPass}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:-rootPass}
+      MARIADB_ROOT_HOST: ${DB_ROOT_HOST:-'%'}
+    networks:
+      - backend
+
+  testrunner:
+    build:
+      context: .
+      dockerfile: Dockerfile.testrunner
+    container_name: testrunner
+    restart: unless-stopped
+    volumes:
+      - ./../civicrm-core:/var/www/html/core:ro
+      - ./../civicrm-packages:/var/www/html/core/packages:ro
+      # Mount settings for CV to run
+      - civicrm-private:/var/www/html/private
+      - civicrm-cache-test:/var/www/html/private/cache
+      - ./../systopiaExtensions:/var/www/html/ext
+      - ./../coverage:/var/www/html/coverage
+      - ./conf/php/99-xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
+    depends_on:
+      - civicrm
+      - test-db
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      TEST_DB_HOST: ${TEST_DB_HOST}
+      TEST_DB_NAME: ${TEST_DB_NAME}
+      TEST_DB_USER: ${DB_ROOT_USER}
+      TEST_DB_PASS: ${DB_ROOT_PASS}
+    networks:
+      - backend
+
+  test-db:
+    image: mariadb
+    container_name: test-db
+    restart: unless-stopped
+    volumes:
+      - dbdata-test:/var/lib/mysql
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      MARIADB_USER: ${TEST_DB_USER:-civicrm}
+      MARIADB_DATABASE: ${TEST_DB_NAME:-civicrm_test}
+      MARIADB_PASSWORD: ${TEST_DB_PASS:-civicrmPass}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:-rootPass}
+      MARIADB_ROOT_HOST: ${DB_ROOT_HOST:-'%'}
+    networks:
+      - backend
+
+  coverage:
+    image: nginx:alpine
+    container_name: coverage
+    restart: unless-stopped
+    volumes:
+      - ./../coverage:/usr/share/nginx/html:ro
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      VIRTUAL_HOST: coverage
+    networks:
+      - backend
+      - frontend
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    expose:
+      - "8025"   # Web UI
+      - "1025"   # SMTP
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      VIRTUAL_HOST: mailpit
+      VIRTUAL_PORT: 8025
+    networks:
+      - backend
+      - frontend
+
+  #Runs once for Initial Setup only
+  civi-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.testrunner
+    container_name: civi-init
+    restart: "no"
+    depends_on:
+      - civicrm-db
+      - mailpit
+    volumes:
+      - ./init:/init:ro
+      # Mount Settings for CV
+      - civicrm-private:/var/www/html/private
+      - civicrm-cache-test:/var/www/html/private/cache
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+    networks:
+      - backend
+    command: >
+      sh -lc '/init/civi-mail.sh'
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
+
+volumes:
+  dbdata: { }
+  dbdata-test: { }
+  civicrm-private: { }
+  civicrm-public: { }
+  civicrm-cache-web: { }
+  civicrm-cache-test: { }
