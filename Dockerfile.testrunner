@@ -6,9 +6,11 @@ WORKDIR /var/www/html
 RUN curl -LsS https://download.civicrm.org/cv/cv.phar -o /usr/local/bin/cv \
  && chmod +x /usr/local/bin/cv \
  && curl -LsS https://download.civicrm.org/civix/civix.phar -o /usr/local/bin/civix \
- && chmod +x /usr/local/bin/civix
+ && chmod +x /usr/local/bin/civix \
+ && curl -LsS https://download.civicrm.org/civistrings/civistrings.phar -o /usr/local/bin/civistrings \
+ && chmod +x /usr/local/bin/civistrings
 
-# Systemtools + MySQL-Client + PHP-Erweiterungen (pdo_mysql) + Composer
+# Systemtools + MySQL-Client + PHP-Erweiterungen (pdo_mysql) + Composer + NPM + ...
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       git \
@@ -16,6 +18,7 @@ RUN apt-get update \
       pkg-config \
       build-essential \
       default-mysql-client \
+      jq \
  && rm -rf /var/lib/apt/lists/* \
  \
  # Composer installieren
@@ -31,5 +34,7 @@ RUN apt-get update \
  && mkdir -p /usr/local/etc/php/conf.d \
  && echo "extension=pcov.so" > /usr/local/etc/php/conf.d/pcov.ini \
  && echo "pcov.enabled=1" >> /usr/local/etc/php/conf.d/pcov.ini \
- && echo "pcov.enabled=1" >> /usr/local/etc/php/conf.d/pcov.ini \
  && echo "pcov.directory=/var/www/html" >> /usr/local/etc/php/conf.d/pcov.ini
+
+# Bind Mount Ownership akzeptieren
+RUN git config --system --add safe.directory '*'

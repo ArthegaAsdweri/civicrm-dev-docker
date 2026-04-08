@@ -1,0 +1,22 @@
+_act_pull_completion()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    case "$COMP_CWORD" in
+        1)
+            COMPREPLY=( $(compgen -W "phpunit phpstan" -- "$cur") )
+            ;;
+        2)
+            COMPREPLY=( $(compgen -W "8.1 8.4" -- "$cur") )
+            ;;
+        3)
+            COMPREPLY=( $(compgen -W "lowest stable" -- "$cur") )
+            ;;
+        *)
+            COMPREPLY=()
+            ;;
+    esac
+}
+
+complete -F _act_pull_completion act-pull

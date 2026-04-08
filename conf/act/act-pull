@@ -1,0 +1,43 @@
+#!/bin/bash
+
+TOOL=$1
+PHP_VERSION=$2
+PREFER=$3
+
+if [ -z "$TOOL" ] || [ -z "$PHP_VERSION" ] || [ -z "$PREFER" ]; then
+  echo "Usage: act-pull <tool> <php-version> <lowest|stable>"
+  echo "Example: act-pull phpunit 8.1 lowest"
+  exit 1
+fi
+
+
+case "$TOOL" in
+  phpunit|phpstan)
+    TOOL_VALUE="$TOOL"
+    ;;
+  *)
+    echo "Invalid tool: $TOOL"
+    exit 1
+    ;;
+esac
+
+case "$PHP_VERSION" in
+  8.1|8.4) VERSION_VALUE="$PHP_VERSION" ;;
+  *)
+    echo "Invalid version: $PHP_VERSION"
+    exit 1
+    ;;
+esac
+
+case "$PREFER" in
+  lowest|stable) PREFER_VALUE="$PREFER" ;;
+  *)
+    echo "Invalid prefer value: $PREFER"
+    exit 1
+    ;;
+esac
+
+act pull_request -j "$TOOL_VALUE" \
+  --matrix php-versions:"$VERSION_VALUE" \
+  --matrix prefer:prefer-"$PREFER_VALUE" \
+  --rm
