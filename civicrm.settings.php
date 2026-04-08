@@ -575,9 +575,9 @@ if (CIVICRM_UF === 'UnitTests') {
  * Set to 0 to disable rotation (only recommended if you have an
  * external logrotate configuration).
  */
-// if (!defined('CIVICRM_LOG_ROTATESIZE')) {
-//   define('CIVICRM_LOG_ROTATESIZE', 0);
-// }
+if (!defined('CIVICRM_LOG_ROTATESIZE')) {
+   define('CIVICRM_LOG_ROTATESIZE', 0);
+}
 
 /**
  * Which directories should we exclude when scanning the codebase for things
