@@ -1,7 +1,7 @@
 # Systopia CiviCRM Docker Stack
 
-Docker-basierte Entwicklungs- und Testumgebung für **CiviCRM** mit klarer Trennung von  
-**Web**, **Datenbank**, **Tests**, **Mail**, **phpMyAdmin** und **Coverage**.
+Docker-basierte Entwicklungs- und Testumgebung für CiviCRM mit klarer Trennung von
+**Web**, **Datenbank**, **Tests**, **Mail**, **phpMyAdmin**, **CI (act)** und **Coverage**.
 
 Optimiert für lokale Entwicklung von CiviCRM-Core und Systopia-Extensions.
 
@@ -14,23 +14,27 @@ Optimiert für lokale Entwicklung von CiviCRM-Core und Systopia-Extensions.
 - SMTP-Mail-Testing via **Mailpit**
 - PHPUnit / CV-Tests mit Code-Coverage
 - Zugriff auf interne und externe Datenbanken (SSH-Tunnel)
+- Lokales Ausführen von GitHub Actions via **act**
 
 ---
 
 ## Enthaltene Services
 
-| Service | Zweck |
-|------|------|
-| `civicrm` | Apache + PHP + CiviCRM |
-| `civicrm-db` | MariaDB (Runtime) |
-| `test-db` | MariaDB (Tests) |
-| `testrunner` | PHPUnit / cv test |
-| `mailpit` | SMTP + Web-UI |
-| `phpmyadmin` | DB-Verwaltung |
-| `nginx-proxy` | Reverse Proxy |
-| `acme-companion` | TLS (optional) |
-| `coverage` | HTML Coverage Report |
-| `civi-init` | Einmalige Initialisierung |
+| Service          | Zweck                       |
+|------------------|-----------------------------|
+| `civicrm`        | Apache + PHP + CiviCRM      |
+| `civicrm-db`     | MariaDB (Runtime)           |
+| `test-db`        | MariaDB (Tests)             |
+| `testrunner`     | PHPUnit / cv test           |
+| `test-db-init`   | Initialisiert Test-DB       |
+| `civi-init`      | Einmalige Initialisierung   |
+| `mailpit`        | SMTP + Web-UI               |
+| `phpmyadmin`     | DB-Verwaltung (+SSH Tunnel) |
+| `nginx-proxy`    | Reverse Proxy               |
+| `acme-companion` | TLS (optional)              |
+| `coverage`       | HTML Coverage Report        |
+| `portainer`      | Docker UI                   |
+| `act`            | imitiert Github Workflows   |
 
 ---
 
@@ -43,12 +47,12 @@ Optimiert für lokale Entwicklung von CiviCRM-Core und Systopia-Extensions.
     - `systopiaExtensions`
 
 Struktur (vereinfacht):
-`
+```
 ├─ systopiaDocker
 ├─ civicrm-core
 ├─ civicrm-packages
 ├─ systopiaExtensions
-`
+```
 
 ---
 
@@ -62,19 +66,21 @@ docker compose up -d
 
 Erster Start führt automatisch aus:
 
-- init/civi-mail.sh
+- initialisiert CiviCRM (ohne automatische Installation)
+- installiert CiviCRM für Testrunner (mit automatischer Installation)
 - Setzt CiviCRM Mail-Backend auf Mailpit
 - Leert CiviCRM-Caches
 
 ---
 
-### Wichtige URLs
-| Dienst                       | URL             |
-|------------------------------|-----------------|
-| CiviCRM                      | http://civicrm  |
-| phpMyAdmin                   | http://pma      | 
-| PHPUnit Code Coverage Report | http://coverage |
-| Mailpit                      | http://mailpit  |
+### Zugriff / URLs
+| Dienst                       | URL              |
+|------------------------------|------------------|
+| CiviCRM                      | http://civicrm   |
+| phpMyAdmin                   | http://pma       | 
+| PHPUnit Code Coverage Report | http://coverage  |
+| Mailpit                      | http://mailpit   |
+| Portainer                    | http://portainer |
 
 Hosts für den nginx-proxy in  `/etc/hosts` anpassen:
 
@@ -84,11 +90,23 @@ Hosts für den nginx-proxy in  `/etc/hosts` anpassen:
 127.0.0.1 pma
 127.0.0.1 coverage
 127.0.0.1 mailpit
+127.0.0.1 portainer
+```
+oder kurz:
+```
+#docker-hosts
+127.0.0.1 civicrm pma coverage mailpit portainer
 ```
 
 ---
 
 ## Services 
+
+### Reverse Proxy / TLS
+
+nginx-proxy routet per VIRTUAL_HOST
+
+acme-companion generiert bei Bedarf automatisch TLS-Zertifikate
 
 ### Mailpit
 
@@ -105,35 +123,42 @@ Script:
 
 ## Tests
 
-Tests laufen im testrunner-Container gegen test-db. (Tranasctions, Rollbacks, ...)
+Tests laufen im testrunner-Container gegen test-db. (Transactions, Rollbacks, ...)
 
-Im Container z.B. wechseln auf 
+Im Container: 
 
-```/var/www/html/ext/[EXTENSION]``` 
-
-und anschließend aufrufen:
-
-`composer phpunit:html`
+```
+cd /var/www/html/ext/[EXTENSION] 
+composer phpunit:html
+```
 
 Das Output landet im gemounteten Verzeichnis für den Coverage-Container:
 `../coverage/`
 
+Abrufbar über coverage-Service. http://coverage
 
-Abrufbar über coverage-Service.
+### Test-Datenbank
+
+Automatisches Setup durch:
+
+`init/test-db.sh`
+
+Features:
+- Wartet auf DB
+- Recreated DB sauber
+- Führt cv core:install aus
+- Skip, wenn bereits installiert
 
 ---
 
 ## phpMyAdmin + SSH-Tunnel
 
-Zusätzlicher externer DB-Zugriff über SSH-Tunnel:
-
-./ssh-tunnel.sh
+Zusätzlicher externer DB-Zugriff über SSH-Tunnel: `./ssh-tunnel.sh`
 
 - Lokal: localhost:3307
 - phpMyAdmin zeigt Server: SSH Tunnel (extern)
 
-Config:
-phpmyadmin/config.user.inc.php
+Config: `phpmyadmin/config.user.inc.php`
 
 ---
 
@@ -147,24 +172,61 @@ CiviCRM-Logs werden live getailed.
 
 ---
 
+## act (GitHub Actions lokal)
+
+im Container:
+```
+cd [EXTENSION]
+act-pull phpunit 8.1 lowest
+```
+
+als Shortcut für:
+```
+act pull_request -j phpstan \
+--matrix php-versions:8.1 \
+--matrix prefer:prefer-lowest \
+--rm
+```
+
+act-pull kann:
+- phpunit, phpstan
+- 8.1, 8.4
+- lowest, stable
+
+(hat autocomplete)
+
+---
+
 ## Konfiguration
 
 - .env
+
   Zentrale Steuerung für DBs, Ports, Credentials
 
 - docker-compose.yml
+
   Alle Services, Volumes, Netzwerke
 
 - Dockerfile.testrunner
+  
   PHP-Erweiterungen, cv, civix, pcov, Composer
+
+- .actrc
+  
+  Definiert das image für die workflows 
+
+---
+
+## Netzwerke
+
+| Netzwerk   | Zweck                 |
+| ---------- | --------------------- |
+| `backend`  | interne Kommunikation |
+| `frontend` | Proxy / HTTP Zugriff  |
 
 ---
 
 ## Hinweise
 
 - Volumes sind persistent
-- civi-init läuft nur einmal
 - Kein Produktions-Setup
-- Reverse-Proxy / TLS optional
-
----
