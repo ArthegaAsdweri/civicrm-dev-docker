@@ -12,7 +12,7 @@ fi
 
 
 case "$TOOL" in
-  phpunit|phpstan)
+  phpunit|phpstan|rector)
     TOOL_VALUE="$TOOL"
     ;;
   *)

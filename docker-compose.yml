@@ -126,6 +126,9 @@ services:
       - ./../systopiaExtensions:/var/www/html/ext
       - ./../coverage:/var/www/html/coverage
       - ./conf/php/99-xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
+
+      # Mount Git Config for scripts like createRelease.sh
+      - ~/.gitconfig:/root/.gitconfig
     depends_on:
       - civicrm
       - test-db

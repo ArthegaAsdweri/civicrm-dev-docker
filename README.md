@@ -51,7 +51,13 @@ Struktur (vereinfacht):
 ├─ systopiaDocker
 ├─ civicrm-core
 ├─ civicrm-packages
+  ├─ DB
+  ├─ HTML
+  ├─ ...
 ├─ systopiaExtensions
+  ├─ de.systopia.contract
+  ├─ de.systopia.eventmessages
+  ├─ ...
 ```
 
 ---
@@ -145,20 +151,30 @@ Automatisches Setup durch:
 
 Features:
 - Wartet auf DB
-- Recreated DB sauber
-- Führt cv core:install aus
+- Erstellt DB sauber neu
+- Führt `cv core:install` aus
 - Skip, wenn bereits installiert
 
 ---
 
 ## phpMyAdmin + SSH-Tunnel
 
-Zusätzlicher externer DB-Zugriff über SSH-Tunnel: `./ssh-tunnel.sh`
+Zusätzlicher externer DB-Zugriff (für Kunden-Datenbanken) über SSH-Tunnel: `./ssh-tunnel.sh`
 
 - Lokal: localhost:3307
 - phpMyAdmin zeigt Server: SSH Tunnel (extern)
 
 Config: `phpmyadmin/config.user.inc.php`
+
+### Nutzung
+
+- Tunnel starten
+- Serverdaten eingeben (SSH-Key wird mitgeliefert)
+- in phpMyAdmin den Server `SSH Tunnel (extern)` wählen
+- Login-Daten für DB aus Wallet kopieren
+- Einloggen
+
+Aktuell wird nur ein Tunnel unterstützt.
 
 ---
 
