@@ -19,6 +19,7 @@ RUN apt-get update \
       build-essential \
       default-mysql-client \
       jq \
+      openssh-client \
  && rm -rf /var/lib/apt/lists/* \
  \
  # Composer installieren
@@ -35,6 +36,12 @@ RUN apt-get update \
  && echo "extension=pcov.so" > /usr/local/etc/php/conf.d/pcov.ini \
  && echo "pcov.enabled=1" >> /usr/local/etc/php/conf.d/pcov.ini \
  && echo "pcov.directory=/var/www/html" >> /usr/local/etc/php/conf.d/pcov.ini
+
+ARG UID=1000
+ARG GID=1000
+
+RUN groupadd -g ${GID} appuser || true \
+ && useradd -m -u ${UID} -g ${GID} -s /bin/bash appuser || true
 
 # Bind Mount Ownership akzeptieren
 RUN git config --system --add safe.directory '*'
