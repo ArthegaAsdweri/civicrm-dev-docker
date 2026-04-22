@@ -255,7 +255,7 @@ Anleitung hier folgen: https://github.com/systopia/civicrm-extension-template
 
 #### PHPUnit
 
-Damit PHPUnit die Entwickler-Datenbank findet, muss die [bootstrap.local.php](https://github.com/ArthegaAsdweri/civicrm-dev-docker/blob/master/extension-conf/bootstrap.local.ini) wie folgt eingebunden werden.
+Damit PHPUnit die Entwickler-Datenbank findet, muss die [bootstrap.local.php](https://github.com/ArthegaAsdweri/civicrm-dev-docker/blob/master/extension-conf/bootstrap.local.php) wie folgt eingebunden werden.
 
 ```
 ├─ tests
