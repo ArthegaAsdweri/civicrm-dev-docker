@@ -1,0 +1,14 @@
+includes:
+    - phpstan.neon.dist
+parameters:
+    scanDirectories:
+        - ../../core/api
+        - ../../core/CRM
+        - ../../core/Civi
+        - ../../core/ext/civi_event/Civi
+        - ../../core/packages/HTML
+        - ../../core/packages/DB
+    scanFiles:
+        - ../../core/packages/DB/DataObject.php
+    bootstrapFiles:
+        - ../../core/vendor/autoload.php

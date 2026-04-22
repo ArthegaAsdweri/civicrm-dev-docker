@@ -114,10 +114,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.testrunner
-      args:
-        UID: ${UID}
-        GID: ${GID}
-    user: "${UID}:${GID}"
     container_name: testrunner
     restart: unless-stopped
     volumes:
@@ -132,8 +128,8 @@ services:
       - ./conf/php/99-xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
 
       # Mount Git + SSH Config for scripts like createRelease.sh
-      - ~/.gitconfig:/home/appuser/.gitconfig:ro
-      - ~/.ssh:/home/appuser/.ssh:ro
+      - ~/.gitconfig:/root/.gitconfig:ro
+      - ~/.ssh:/root/.ssh:ro
     depends_on:
       - civicrm
       - test-db

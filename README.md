@@ -246,3 +246,36 @@ act-pull kann:
 
 - Volumes sind persistent
 - Kein Produktions-Setup
+
+---
+
+### Ausführung von "civicrm-extension-template"
+
+Anleitung hier folgen: https://github.com/systopia/civicrm-extension-template
+
+#### PHPUnit
+
+Damit PHPUnit die Entwickler-Datenbank findet, muss die [bootstrap.local.php](https://github.com/ArthegaAsdweri/civicrm-dev-docker/blob/master/extension-conf/bootstrap.local.ini) wie folgt eingebunden werden.
+
+```
+├─ tests
+  ├─ phpunit
+     ├─ bootstrap.local.php
+     ├─ bootstrap.php
+```
+
+#### PHPStan
+
+Die [phpstan.neon](https://github.com/ArthegaAsdweri/civicrm-dev-docker/blob/master/extension-conf/phpstan.neon) muss im Extension-Root liegen.
+
+In 90% der Fälle reicht:
+
+```
+includes:
+  - phpstan.neon.dist
+parameters:
+  scanDirectories:
+    - ../../core/api
+```
+
+In manchen Extensions sind aber komplexere "Needs" vorhanden. Die Beispiel-Datei bildet solche Needs ab.
