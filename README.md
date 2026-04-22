@@ -275,7 +275,7 @@ includes:
   - phpstan.neon.dist
 parameters:
   scanDirectories:
-    - ../../core/api
+    - ../../core
 ```
 
 In manchen Extensions sind aber komplexere "Needs" vorhanden. Die Beispiel-Datei bildet solche Needs ab.
